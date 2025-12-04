@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Detector de Plantas Medicinales Perú</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+      /* --- ESTILOS VISUALES --- */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(-45deg, #1a5f3a, #2d8659, #43a574, #58c48f);
+        background-size: 400% 400%;
+        animation: gradientShift 15s ease infinite;
+        min-height: 100vh;
+        color: #fff;
+      }
+
+      @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      .container-main { max-width: 1000px; margin: 0 auto; padding: 20px; }
+
+      /* Header */
+      .header {
+        text-align: center;
+        padding: 40px 20px;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        margin-bottom: 30px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      .header h1 { font-weight: 700; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+
+      /* Tabs */
+      .tabs-nav { display: flex; gap: 15px; justify-content: center; margin-bottom: 30px; }
+      .tab-btn {
+        background: rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        color: #fff;
+        padding: 12px 25px;
+        border-radius: 15px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+      .tab-btn:hover { background: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }
+      .tab-btn.active {
+        background: #fff;
+        color: #1a5f3a;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      }
+
+      /* Cards */
+      .content-card {
+        background: rgba(255, 255, 255, 0.96);
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        color: #333;
+        display: none; /* Oculto por defecto */
+      }
+      .content-card.active { display: block; animation: fadeIn 0.5s ease; }
+
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+      /* Upload Zone */
+      .upload-zone {
+        border: 3px dashed #2d8659;
+        border-radius: 15px;
+        padding: 40px;
+        text-align: center;
+        background: #f8fdf9;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      .upload-zone:hover { background: #eafbe0; border-color: #1a5f3a; }
+      
+      #imagen-preview {
+        max-width: 100%;
+        max-height: 350px;
+        margin: 20px auto;
+        display: none;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      }
+
+      /* Camera */
+      #video-container { 
+        position: relative; 
+        max-width: 100%; 
+        border-radius: 15px; 
+        overflow: hidden; 
+        display: none;
+        margin: 0 auto;
+      }
+      video { width: 100%; display: block; }
+      
+      /* Botones */
+      .btn-custom {
+        background: linear-gradient(135deg, #2d8659, #1a5f3a);
+        color: white; border: none; padding: 12px 30px;
+        border-radius: 10px; font-weight: 600; cursor: pointer;
+        margin: 5px; transition: 0.3s;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      }
+      .btn-custom:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.3); }
+      .btn-secondary-custom { background: #6c757d; }
+
+      /* Resultados */
+      .resultado-item {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        display: flex; justify-content: space-between; align-items: center;
+        border-left: 5px solid #ccc;
+      }
+      .resultado-item.winner {
+        background: #e8f5e9;
+        border-left: 5px solid #2d8659;
+        font-weight: bold;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      }
+      
+      /* Info Adicional (Gemini) */
+      .info-adicional {
+        margin-top: 30px;
+        background: #f0fff4;
+        border: 1px solid #c3e6cb;
+        border-radius: 15px;
+        padding: 25px;
+      }
+      .info-section h4 { color: #155724; border-bottom: 2px solid #c3e6cb; padding-bottom: 5px; margin-top: 15px; }
+      .info-section ul { padding-left: 20px; }
+      .info-section li { margin-bottom: 5px; }
+
+      /* Loader */
+      .loader {
+        border: 5px solid #f3f3f3; border-top: 5px solid #2d8659;
+        border-radius: 50%; width: 40px; height: 40px;
+        animation: spin 1s linear infinite; margin: 20px auto;
+      }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    </style>
+  </head>
+  <body>
+    
+    <div class="container-main">
+      <div class="header">
+        <h1>🌿 Identificador de Plantas Medicinales Perú</h1>
+        <p>Inteligencia Artificial + Medicina Tradicional</p>
+      </div>
+
+      <div class="tabs-nav">
+        <button class="tab-btn active" onclick="cambiarTab('subir')">📁 Subir Foto</button>
+        <button class="tab-btn" onclick="cambiarTab('camara')">📷 Usar Cámara</button>
+      </div>
+
+      <div id="tab-subir" class="content-card active">
+        <div class="upload-zone" onclick="document.getElementById('upload-image').click()" id="drop-zone">
+          <div style="font-size: 3rem;">📤</div>
+          <h3>Toca para seleccionar una imagen</h3>
+          <p class="text-muted">Formatos: JPG, PNG</p>
+        </div>
+        <input type="file" id="upload-image" accept="image/*" style="display: none;">
+
+        <img id="imagen-preview" src="" alt="Vista previa">
+
+        <div class="text-center mt-3" id="botones-subir" style="display: none;">
+          <button class="btn-custom" onclick="predecir('imagen-preview')">🔍 Analizar Planta</button>
+          <button class="btn-custom btn-secondary-custom" onclick="resetearInterfaz()">🔄 Nueva Imagen</button>
+        </div>
+      </div>
+
+      <div id="tab-camara" class="content-card">
+        <div class="text-center">
+            <div id="video-container">
+                <video id="video" playsinline autoplay></video>
+                <canvas id="canvas" style="display:none;"></canvas>
+            </div>
+            
+            <div id="botones-camara" class="mt-3">
+                <button class="btn-custom" onclick="iniciarCamara()">🔌 Activar Cámara</button>
+            </div>
+
+            <div id="controles-foto" class="mt-3" style="display:none;">
+                <button class="btn-custom" onclick="tomarFoto()">📸 Capturar y Analizar</button>
+            </div>
+        </div>
+      </div>
+
+      <div id="area-resultados" class="content-card" style="margin-top: 20px;">
+        <div id="loader" style="display: none;">
+            <div class="loader"></div>
+            <p class="text-center">Analizando características...</p>
+        </div>
+        <div id="resultado-contenido"></div>
+      </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    
+    <script type="importmap">
+      {
+        "imports": {
+          "@google/generative-ai": "https://esm.run/@google/generative-ai"
+        }
+      }
+    </script>
+
+    <script type="module">
+      import { GoogleGenerativeAI } from "@google/generative-ai";
+
+      // --- CONFIGURACIÓN ---
+      const GEMINI_API_KEY = "PON_TU_API_KEY_AQUI"; // <--- ¡IMPORTANTE!
+      let modelo = null;
+      let nombresClases = [];
+      let genAI = null;
+
+      // Inicializar Gemini
+      try {
+        if(GEMINI_API_KEY.length > 5) {
+            genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        }
+      } catch (e) { console.error("Error GenAI:", e); }
+
+      // --- CARGAR MODELO Y METADATA ---
+      (async () => {
+          console.log("Cargando sistema...");
+          try {
+            // 1. Cargar modelo graph
+            modelo = await tf.loadGraphModel('./modelo_web/model.json');
+            
+            // 2. Cargar nombres de clases
+            const req = await fetch('./modelo_web/metadata.json');
+            const data = await req.json();
+            nombresClases = data.class_names;
+
+            console.log("✓ Sistema listo. Clases:", nombresClases);
+          } catch (error) {
+            console.error("Error cargando archivos:", error);
+            document.getElementById("resultado-contenido").innerHTML = 
+                `<div class="alert alert-danger">❌ Error: No se encontraron los archivos del modelo en la carpeta 'modelo_web'.</div>`;
+            document.getElementById("area-resultados").style.display = "block";
+          }
+      })();
+
+      // --- FUNCIONES GLOBALES ---
+      window.cambiarTab = (tab) => {
+        document.querySelectorAll('.content-card').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        
+        // Lógica específica
+        if(tab === 'subir') {
+            document.getElementById('tab-subir').classList.add('active');
+            detenerCamara(); // Ahorrar recursos
+        } else if(tab === 'camara') {
+            document.getElementById('tab-camara').classList.add('active');
+        }
+        
+        // Ocultar resultados al cambiar
+        document.getElementById('area-resultados').style.display = 'none';
+        
+        // Activar botón visualmente
+        const btnIndex = tab === 'subir' ? 0 : 1;
+        document.querySelectorAll('.tab-btn')[btnIndex].classList.add('active');
+      };
+
+      // --- LÓGICA SUBIR IMAGEN ---
+      const inputImagen = document.getElementById('upload-image');
+      inputImagen.onchange = (evt) => {
+        const file = evt.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = document.getElementById('imagen-preview');
+                img.src = e.target.result;
+                img.style.display = 'block';
+                document.getElementById('drop-zone').style.display = 'none';
+                document.getElementById('botones-subir').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+      };
+
+      window.resetearInterfaz = () => {
+        document.getElementById('imagen-preview').style.display = 'none';
+        document.getElementById('drop-zone').style.display = 'block';
+        document.getElementById('botones-subir').style.display = 'none';
+        document.getElementById('area-resultados').style.display = 'none';
+        inputImagen.value = '';
+      };
+
+      // --- LÓGICA DE PREDICCIÓN ---
+      window.predecir = async (idImagenElemento) => {
+        if (!modelo) { alert("El modelo aún está cargando..."); return; }
+
+        const imgEl = document.getElementById(idImagenElemento);
+        
+        // UI
+        document.getElementById("area-resultados").style.display = "block";
+        document.getElementById("loader").style.display = "block";
+        document.getElementById("resultado-contenido").innerHTML = "";
+
+        // TENSORFLOW
+        try {
+            const prediccion = tf.tidy(() => {
+                let tensor = tf.browser.fromPixels(imgEl)
+                    .resizeBilinear([224, 224]) // Redimensionar
+                    .toFloat()
+                    .expandDims(0); // Batch de 1
+
+                // NOTA: NO dividimos por 255 porque el modelo exportado 
+                // ya tiene la capa de preprocesamiento integrada.
+                
+                return modelo.predict(tensor);
+            });
+
+            const valores = await prediccion.data();
+            prediccion.dispose(); // Limpiar memoria
+
+            // Procesar resultados
+            let resultados = Array.from(valores).map((p, i) => ({
+                clase: nombresClases[i],
+                probabilidad: p
+            })).sort((a, b) => b.probabilidad - a.probabilidad);
+
+            mostrarResultados(resultados);
+
+        } catch (e) {
+            console.error(e);
+            alert("Error al predecir: " + e.message);
+            document.getElementById("loader").style.display = "none";
+        }
+      };
+
+      function mostrarResultados(resultados) {
+        document.getElementById("loader").style.display = "none";
+        
+        let html = `<h3 class="mb-3 text-center" style="color:#1a5f3a">Resultados del Análisis</h3>`;
+        
+        // Mostrar Top 3
+        resultados.slice(0, 3).forEach((item, index) => {
+            const porcentaje = (item.probabilidad * 100).toFixed(2);
+            const esGanador = index === 0 ? 'winner' : '';
+            const icono = index === 0 ? '🏆' : '🔹';
+            
+            html += `
+                <div class="resultado-item ${esGanador}">
+                    <span>${icono} ${item.clase.toUpperCase()}</span>
+                    <span class="badge bg-success">${porcentaje}%</span>
+                </div>
+            `;
+        });
+
+        document.getElementById("resultado-contenido").innerHTML = html;
+
+        // Consultar Gemini para el ganador
+        if (resultados[0].probabilidad > 0.4) {
+            consultarGemini(resultados[0].clase);
+        } else {
+            document.getElementById("resultado-contenido").innerHTML += 
+                `<p class="text-center text-muted mt-3">La confianza es baja. Intenta con otra foto.</p>`;
+        }
+      }
+
+      // --- GEMINI AI ---
+      // --- GEMINI AI (NUEVA VERSIÓN 3 SECCIONES) ---
+      async function consultarGemini(planta) {
+        if (!genAI) {
+            console.warn("Falta API Key de Gemini");
+            return;
+        }
+
+        const contenedor = document.getElementById("resultado-contenido");
+        
+        // Loader visual
+        const loaderDiv = document.createElement('div');
+        loaderDiv.id = "gemini-loader";
+        loaderDiv.innerHTML = `
+            <div class="alert alert-light text-center mt-3 border" role="alert">
+                <span class="spinner-grow spinner-grow-sm text-success" role="status"></span>
+                <span class="ms-2">Consultando enciclopedia botánica sobre: <b>${planta}</b>...</span>
+            </div>`;
+        contenedor.appendChild(loaderDiv);
+
+        try {
+            // Usamos el modelo latest. Si falla, el catch probará 'gemini-pro'.
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            
+            // PROMPT ESTRICTO PARA 3 SECCIONES
+            const prompt = `
+                Actúa como un experto botánico estricto.
+                Genera información para la planta medicinal: "${planta}".
+                
+                REGLAS:
+                1. Tu respuesta debe ser ÚNICAMENTE código HTML.
+                2. NO uses bloques de código markdown (\`\`\`html). Escribe el HTML directo.
+                3. Llena las 3 tarjetas siguientes con información breve y precisa.
+
+                ESTRUCTURA HTML OBLIGATORIA:
+                <div class="row mt-4">
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 border-success">
+                            <div class="card-header bg-success text-white"><h5>✅ Beneficios</h5></div>
+                            <div class="card-body">
+                                <ul>
+                                    <li>[Beneficio 1]</li>
+                                    <li>[Beneficio 2]</li>
+                                    <li>[Beneficio 3]</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 border-warning">
+                            <div class="card-header bg-warning text-dark"><h5>🍵 Recetas</h5></div>
+                            <div class="card-body">
+                                <ul>
+                                    <li><b>[Receta 1]:</b> [Instrucción]</li>
+                                    <li><b>[Receta 2]:</b> [Instrucción]</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <div class="card h-100 border-danger">
+                            <div class="card-header bg-danger text-white"><h5>⚠️ Precaución</h5></div>
+                            <div class="card-body">
+                                <ul>
+                                    <li>[Contraindicación 1]</li>
+                                    <li>[Contraindicación 2]</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            let text = response.text();
+
+            // Limpieza de seguridad por si Gemini pone markdown
+            text = text.replace(/```html/g, '').replace(/```/g, '');
+
+            // Mostrar resultado
+            loaderDiv.remove();
+            const resultadoFinal = document.createElement('div');
+            resultadoFinal.innerHTML = text;
+            contenedor.appendChild(resultadoFinal);
+            
+        } catch (error) {
+            console.error("Error Gemini:", error);
+            loaderDiv.innerHTML = `
+                <div class="alert alert-warning text-center">
+                    <small>No se pudo conectar con el experto botánico. (Error: ${error.message})</small>
+                </div>`;
+        }
+      }
+
+      // --- CÁMARA ---
+      let streamCamara = null;
+
+      window.iniciarCamara = async () => {
+        const video = document.getElementById('video');
+        try {
+            streamCamara = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "environment" } 
+            });
+            video.srcObject = streamCamara;
+            document.getElementById('video-container').style.display = 'block';
+            document.getElementById('botones-camara').style.display = 'none';
+            document.getElementById('controles-foto').style.display = 'block';
+        } catch (err) {
+            alert("No se pudo acceder a la cámara: " + err);
+        }
+      };
+
+      window.detenerCamara = () => {
+        if (streamCamara) {
+            streamCamara.getTracks().forEach(track => track.stop());
+            document.getElementById('video-container').style.display = 'none';
+            document.getElementById('botones-camara').style.display = 'block';
+            document.getElementById('controles-foto').style.display = 'none';
+        }
+      };
+
+      window.tomarFoto = () => {
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        
+        // Usar el canvas como fuente para la predicción
+        predecir('canvas');
+        detenerCamara();
+      };
+
+    </script>
+  </body>
+</html>
